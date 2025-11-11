@@ -7,11 +7,17 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"context"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
 	"github.com/minilik/ecommerce/config"
 	"github.com/minilik/ecommerce/internal/adapter/handler"
 	mw "github.com/minilik/ecommerce/internal/adapter/middleware"
 	gormrepo "github.com/minilik/ecommerce/internal/adapter/repository/gorm"
 	"github.com/minilik/ecommerce/internal/adapter/router"
+	"github.com/minilik/ecommerce/internal/domain"
 	"github.com/minilik/ecommerce/internal/infrastructure/database"
 	authusecase "github.com/minilik/ecommerce/internal/usecase/auth"
 	orderusecase "github.com/minilik/ecommerce/internal/usecase/order"
@@ -73,9 +79,35 @@ func Build(cfg *config.Config) (*DIContainer, error) {
 	imageRepo := gormrepo.NewProductImageRepository(db)
 	imageService := productusecase.NewImageService(imageRepo, uploader, log)
 
+	// Seed initial admin (idempotent)
+	if cfg.Admin.Enabled && cfg.Admin.Email != "" && cfg.Admin.Password != "" {
+		if existing, err := userRepo.FindByEmail(context.Background(), strings.ToLower(cfg.Admin.Email)); err == nil && existing == nil {
+			hashed, err := hasher.Hash(cfg.Admin.Password)
+			if err == nil {
+				admin := &domain.User{
+					ID:        uuid.New(),
+					Username:  cfg.Admin.Username,
+					Email:     strings.ToLower(cfg.Admin.Email),
+					Password:  hashed,
+					Role:      domain.RoleAdmin,
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				}
+				if err := userRepo.Create(context.Background(), admin); err != nil {
+					log.Warn("admin seed failed", zap.Error(err))
+				} else {
+					log.Info("admin user seeded", zap.String("email", cfg.Admin.Email))
+				}
+			} else {
+				log.Warn("admin seed hash password failed", zap.Error(err))
+			}
+		}
+	}
+
 	authHandler := handler.NewAuthHandler(authService, log)
 	productHandler := handler.NewProductHandler(productService, log).WithImageService(imageService)
 	orderHandler := handler.NewOrderHandler(orderService, log)
+	adminHandler := handler.NewAdminHandler(authService, log)
 
 	authMiddleware := mw.NewAuthMiddleware(log, jwtManager)
 	var rateLimiter *mw.RateLimitMiddleware
@@ -87,6 +119,7 @@ func Build(cfg *config.Config) (*DIContainer, error) {
 		AuthHandler:    authHandler,
 		ProductHandler: productHandler,
 		OrderHandler:   orderHandler,
+		AdminHandler:   adminHandler,
 		AuthMiddleware: authMiddleware,
 		RateLimiter:    rateLimiter,
 	})

@@ -25,8 +25,9 @@ var (
 )
 
 type Service interface {
-	Register(ctx context.Context, input RegisterInput) (*AuthResponse, error)
+	Register(ctx context.Context, input RegisterInput) (*RegisterResponse, error)
 	Login(ctx context.Context, input LoginInput) (*AuthResponse, error)
+	PromoteToAdmin(ctx context.Context, userID uuid.UUID) error
 }
 
 type service struct {
@@ -55,7 +56,7 @@ func NewService(
 	}
 }
 
-func (s *service) Register(ctx context.Context, input RegisterInput) (*AuthResponse, error) {
+func (s *service) Register(ctx context.Context, input RegisterInput) (*RegisterResponse, error) {
 	if err := s.validateRegisterInput(ctx, input); err != nil {
 		return nil, err
 	}
@@ -70,7 +71,7 @@ func (s *service) Register(ctx context.Context, input RegisterInput) (*AuthRespo
 		Username:  strings.TrimSpace(input.Username),
 		Email:     strings.ToLower(strings.TrimSpace(input.Email)),
 		Password:  hashed,
-		Role:      resolveRole(input.Role),
+		Role:      domain.RoleUser,
 		CreatedAt: s.nowFunc(),
 		UpdatedAt: s.nowFunc(),
 	}
@@ -79,7 +80,12 @@ func (s *service) Register(ctx context.Context, input RegisterInput) (*AuthRespo
 		return nil, err
 	}
 
-	return s.issueToken(user)
+	return &RegisterResponse{
+		UserID:   user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		Role:     string(user.Role),
+	}, nil
 }
 
 func (s *service) Login(ctx context.Context, input LoginInput) (*AuthResponse, error) {
@@ -100,6 +106,20 @@ func (s *service) Login(ctx context.Context, input LoginInput) (*AuthResponse, e
 	}
 
 	return s.issueToken(user)
+}
+
+func (s *service) PromoteToAdmin(ctx context.Context, userID uuid.UUID) error {
+	user, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return domain.ErrUserNotFound
+	}
+	if user.Role == domain.RoleAdmin {
+		return nil
+	}
+	return s.users.UpdateRole(ctx, userID, domain.RoleAdmin)
 }
 
 func (s *service) issueToken(user *domain.User) (*AuthResponse, error) {
@@ -160,14 +180,7 @@ func validateEmail(email string) error {
 	return nil
 }
 
-func resolveRole(role string) domain.Role {
-	switch strings.ToLower(strings.TrimSpace(role)) {
-	case string(domain.RoleAdmin):
-		return domain.RoleAdmin
-	default:
-		return domain.RoleUser
-	}
-}
+// all registrations become regular users; admin seeding controls admin creation.
 
 func isValidPassword(password string) bool {
 	if len(password) < 8 {

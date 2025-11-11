@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("config")
+	cfg, err := config.Load("")
 	if err != nil {
 		panic(fmt.Errorf("load config: %w", err))
 	}

@@ -17,6 +17,7 @@ type Config struct {
 	Cloud    Cloudinary     `mapstructure:"cloudinary"`
 	Rate     RateLimit      `mapstructure:"rate_limit"`
 	Cache    CacheConfig    `mapstructure:"cache"`
+	Admin    AdminSeed      `mapstructure:"admin_seed"`
 }
 
 type AppConfig struct {
@@ -62,6 +63,14 @@ type CacheConfig struct {
 	Enabled           bool          `mapstructure:"enabled"`
 	ProductListTTL    time.Duration `mapstructure:"product_list_ttl"`
 	MaxProductEntries int           `mapstructure:"max_product_entries"`
+}
+
+// AdminSeed holds initial admin user seeding configuration.
+type AdminSeed struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Email    string `mapstructure:"email"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
 }
 
 // Load loads the configuration from the provided path (directory). It falls back to the current working directory.
@@ -122,6 +131,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("cache.enabled", true)
 	v.SetDefault("cache.product_list_ttl", time.Minute*1)
 	v.SetDefault("cache.max_product_entries", 1000)
+
+	v.SetDefault("admin_seed.enabled", false)
 }
 
 func applyFallbacks(cfg *Config) {
