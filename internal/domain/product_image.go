@@ -9,6 +9,6 @@ import (
 type ProductImage struct {
 	ID        uuid.UUID
 	ProductID uuid.UUID
-	URL       string
+	URL       string `json:"url"`
 	CreatedAt time.Time
 }

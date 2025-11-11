@@ -18,6 +18,7 @@ type Product struct {
 	UserID      uuid.UUID `gorm:"type:uuid;not null"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	Images      []ProductImage `gorm:"foreignKey:ProductID"`
 }
 
 func (Product) TableName() string {
@@ -25,6 +26,10 @@ func (Product) TableName() string {
 }
 
 func (p *Product) ToDomain() *domain.Product {
+	images := make([]domain.ProductImage, 0, len(p.Images))
+	for _, im := range p.Images {
+		images = append(images, im.ToDomain())
+	}
 	return &domain.Product{
 		ID:          p.ID,
 		Name:        p.Name,
@@ -33,6 +38,7 @@ func (p *Product) ToDomain() *domain.Product {
 		Stock:       p.Stock,
 		Category:    p.Category,
 		UserID:      p.UserID,
+		Images:      images,
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 	}

@@ -15,6 +15,7 @@ type Product struct {
 	Stock       int
 	Category    string
 	UserID      uuid.UUID
+	Images      []ProductImage `json:"images,omitempty"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

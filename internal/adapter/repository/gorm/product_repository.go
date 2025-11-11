@@ -68,7 +68,7 @@ func (r *productRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (r *productRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Product, error) {
 	var model models.Product
-	if err := r.db.WithContext(ctx).First(&model, "id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Images").First(&model, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, domain.ErrProductNotFound
 		}
@@ -100,7 +100,7 @@ func (r *productRepository) List(ctx context.Context, filter repository.ProductF
 		tx = tx.Offset(filter.Offset)
 	}
 
-	if err := tx.Order("created_at DESC").Find(&productList).Error; err != nil {
+	if err := tx.Preload("Images").Order("created_at DESC").Find(&productList).Error; err != nil {
 		return nil, 0, err
 	}
 	// it already under session based execution, so no need to create a new transaction
