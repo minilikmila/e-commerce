@@ -1,0 +1,4 @@
+config.yaml
+*.txt
+*.json
+/bin
