@@ -54,5 +54,6 @@ func Migrate(db *gorm.DB) error {
 		&models.Product{},
 		&models.Order{},
 		&models.OrderItem{},
+		&models.ProductImage{},
 	)
 }
