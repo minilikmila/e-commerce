@@ -16,6 +16,8 @@ import (
 	authusecase "github.com/minilik/ecommerce/internal/usecase/auth"
 	orderusecase "github.com/minilik/ecommerce/internal/usecase/order"
 	productusecase "github.com/minilik/ecommerce/internal/usecase/product"
+	"github.com/minilik/ecommerce/pkg/cache"
+	"github.com/minilik/ecommerce/pkg/cloudinary"
 	hashpkg "github.com/minilik/ecommerce/pkg/hash"
 	jwtpkg "github.com/minilik/ecommerce/pkg/jwt"
 	"github.com/minilik/ecommerce/pkg/logger"
@@ -56,20 +58,37 @@ func Build(cfg *config.Config) (*DIContainer, error) {
 	uow := gormrepo.NewUnitOfWork(db)
 
 	authService := authusecase.NewService(userRepo, hasher, jwtManager, cfg, log)
-	productService := productusecase.NewService(productRepo, orderRepo, log)
+	var prodCache *cache.MemoryCache
+	if cfg.Cache.Enabled {
+		prodCache = cache.NewMemoryCache(cfg.Cache.ProductListTTL, cfg.Cache.MaxProductEntries)
+	}
+	productService := productusecase.NewService(productRepo, orderRepo, log, prodCache)
 	orderService := orderusecase.NewService(uow, log)
 
+	// Cloudinary uploader + image repo/service
+	var uploader *cloudinary.Client
+	if cfg.Cloud.CloudName != "" && (cfg.Cloud.UploadPreset != "" || cfg.Cloud.APIKey != "") {
+		uploader = cloudinary.NewClient(cfg.Cloud.CloudName, cfg.Cloud.APIKey, cfg.Cloud.APISecret, cfg.Cloud.UploadPreset, cfg.Cloud.Folder)
+	}
+	imageRepo := gormrepo.NewProductImageRepository(db)
+	imageService := productusecase.NewImageService(imageRepo, uploader, log)
+
 	authHandler := handler.NewAuthHandler(authService, log)
-	productHandler := handler.NewProductHandler(productService, log)
+	productHandler := handler.NewProductHandler(productService, log).WithImageService(imageService)
 	orderHandler := handler.NewOrderHandler(orderService, log)
 
 	authMiddleware := mw.NewAuthMiddleware(log, jwtManager)
+	var rateLimiter *mw.RateLimitMiddleware
+	if cfg.Rate.Enabled && cfg.Rate.Limit > 0 && cfg.Rate.Window > 0 {
+		rateLimiter = mw.NewRateLimitMiddleware(cfg.Rate.Limit, cfg.Rate.Window)
+	}
 
 	engine := router.Setup(router.Dependencies{
 		AuthHandler:    authHandler,
 		ProductHandler: productHandler,
 		OrderHandler:   orderHandler,
 		AuthMiddleware: authMiddleware,
+		RateLimiter:    rateLimiter,
 	})
 
 	return &DIContainer{

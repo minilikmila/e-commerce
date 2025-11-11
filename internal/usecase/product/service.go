@@ -12,6 +12,7 @@ import (
 
 	"github.com/minilik/ecommerce/internal/domain"
 	"github.com/minilik/ecommerce/internal/domain/repository"
+	memcache "github.com/minilik/ecommerce/pkg/cache"
 )
 
 type Service interface {
@@ -25,14 +26,16 @@ type Service interface {
 type service struct {
 	repo      repository.ProductRepository
 	orderRepo repository.OrderRepository
+	cache     *memcache.MemoryCache
 	logger    *zap.Logger
 	now       func() time.Time
 }
 
-func NewService(repo repository.ProductRepository, orderRepo repository.OrderRepository, logger *zap.Logger) Service {
+func NewService(repo repository.ProductRepository, orderRepo repository.OrderRepository, logger *zap.Logger, cache *memcache.MemoryCache) Service {
 	return &service{
 		repo:      repo,
 		orderRepo: orderRepo,
+		cache:     cache,
 		logger:    logger,
 		now:       time.Now,
 	}
@@ -131,7 +134,27 @@ func (s *service) List(ctx context.Context, input ListProductsInput) ([]domain.P
 		Offset: offset,
 	}
 
-	return s.repo.List(ctx, filter)
+	cacheKey := fmt.Sprintf("products:list:%s:%d:%d", strings.ToLower(filter.Search), page, pageSize)
+	if s.cache != nil {
+		if v, ok := s.cache.Get(cacheKey); ok {
+			if res, ok2 := v.([2]interface{}); ok2 {
+				if prods, okp := res[0].([]domain.Product); okp {
+					if tot, okt := res[1].(int64); okt {
+						return prods, tot, nil
+					}
+				}
+			}
+		}
+	}
+
+	products, total, err := s.repo.List(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	if s.cache != nil {
+		s.cache.Set(cacheKey, [2]interface{}{products, total})
+	}
+	return products, total, nil
 }
 
 func validateCreateInput(input CreateProductInput) error {

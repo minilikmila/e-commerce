@@ -15,8 +15,9 @@ import (
 )
 
 type ProductHandler struct {
-	service productusecase.Service
-	logger  *zap.Logger
+	service      productusecase.Service
+	imageService productusecase.ImageService
+	logger       *zap.Logger
 }
 
 func NewProductHandler(service productusecase.Service, logger *zap.Logger) *ProductHandler {
@@ -24,6 +25,11 @@ func NewProductHandler(service productusecase.Service, logger *zap.Logger) *Prod
 		service: service,
 		logger:  logger,
 	}
+}
+
+func (h *ProductHandler) WithImageService(img productusecase.ImageService) *ProductHandler {
+	h.imageService = img
+	return h
 }
 
 func (h *ProductHandler) Create(c *gin.Context) {
@@ -156,4 +162,41 @@ func parseQueryInt(c *gin.Context, key string, defaultValue int) int {
 		return defaultValue
 	}
 	return parsed
+}
+
+func (h *ProductHandler) UploadImages(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorBase("invalid product id", []string{err.Error()}))
+		return
+	}
+	if h.imageService == nil {
+		c.JSON(http.StatusInternalServerError, response.ErrorBase("image service not configured", []string{}))
+		return
+	}
+	claims, ok := middleware.GetUserClaims(c)
+	if !ok || claims.Role != domain.RoleAdmin {
+		c.JSON(http.StatusForbidden, response.ErrorBase("forbidden", []string{"admin role required"}))
+		return
+	}
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorBase("invalid multipart form", []string{err.Error()}))
+		return
+	}
+	files := form.File["files"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, response.ErrorBase("no files uploaded", []string{}))
+		return
+	}
+	if len(files) > 4 {
+		c.JSON(http.StatusBadRequest, response.ErrorBase("maximum 4 images allowed", []string{}))
+		return
+	}
+	uploaded, err := h.imageService.UploadImages(c.Request.Context(), id, files)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ErrorBase("failed to upload images", []string{err.Error()}))
+		return
+	}
+	c.JSON(http.StatusCreated, response.SuccessBase("images uploaded", uploaded))
 }
