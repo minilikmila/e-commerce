@@ -60,7 +60,15 @@ func (s *imageService) UploadImages(ctx context.Context, productID uuid.UUID, fi
 		}
 		func() { // anonymous func here:
 			defer src.Close()
-			url, err := s.uploader.UploadUnsigned(ctx, src, safeFilename(fh.Filename))
+			filename := safeFilename(fh.Filename)
+			var url string
+			var err error
+			// Prefer signed upload when API key/secret are configured but unsigned / unauthenticated for worst case
+			if s.uploader != nil && s.uploader.APIKey != "" && s.uploader.APISecret != "" {
+				url, err = s.uploader.UploadSigned(ctx, src, filename, nil)
+			} else {
+				url, err = s.uploader.UploadUnsigned(ctx, src, filename)
+			}
 			if err != nil {
 				s.logger.Error("cloudinary upload failed", zap.Error(err))
 				return
