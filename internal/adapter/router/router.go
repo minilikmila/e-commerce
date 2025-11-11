@@ -17,6 +17,7 @@ type Dependencies struct {
 	AuthHandler    *handler.AuthHandler
 	ProductHandler *handler.ProductHandler
 	OrderHandler   *handler.OrderHandler
+	AdminHandler   *handler.AdminHandler
 	AuthMiddleware *middleware.AuthMiddleware
 	RateLimiter    *middleware.RateLimitMiddleware
 }
@@ -61,6 +62,13 @@ func Setup(deps Dependencies) *gin.Engine {
 	{
 		orders.POST("", deps.OrderHandler.Create)
 		orders.GET("", deps.OrderHandler.List)
+	}
+
+	// Admin endpoints
+	admin := v1.Group("/admin")
+	admin.Use(deps.AuthMiddleware.RequireAuth(), deps.AuthMiddleware.RequireRoles(domain.RoleAdmin))
+	{
+		admin.POST("/users/:id/admin", deps.AdminHandler.PromoteUserToAdmin)
 	}
 
 	return r

@@ -64,3 +64,14 @@ func (r *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Us
 	}
 	return model.ToDomain(), nil
 }
+
+func (r *userRepository) UpdateRole(ctx context.Context, id uuid.UUID, role domain.Role) error {
+	res := r.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", id).Update("role", string(role))
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}

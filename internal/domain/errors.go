@@ -13,4 +13,5 @@ var (
 	ErrInvalidEmailFormat      = errors.New("invalid email format")
 	ErrEmailCannotEmpty        = errors.New("email cannot be empty")
 	ErrProductHasPendingOrders = errors.New("cannot delete product: product has pending orders")
+	ErrUserNotFound            = errors.New("user not found")
 )
