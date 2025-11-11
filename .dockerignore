@@ -1,0 +1,16 @@
+# dockerignore file excludes files from the container build process.
+
+.DS_Store
+bin
+*.conf
+conf.sample
+dist
+*.env
+LICENSE
+README.md
+config.*
+*.pem
+
+# Exclude git history and configuration
+.git
+.gitignore

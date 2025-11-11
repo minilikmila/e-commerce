@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    container_name: ecommerce-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-commerce}
+    ports:
+      - "5433:5432"
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  app:
+    build: .
+    container_name: ecommerce-api
+    depends_on:
+      - db
+    environment:
+      # The app reads config.yaml
+      APP_ENV: ${APP_ENV:-development}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+volumes:
+  db_data:
