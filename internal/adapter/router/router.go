@@ -18,12 +18,16 @@ type Dependencies struct {
 	ProductHandler *handler.ProductHandler
 	OrderHandler   *handler.OrderHandler
 	AuthMiddleware *middleware.AuthMiddleware
+	RateLimiter    *middleware.RateLimitMiddleware
 }
 
 func Setup(deps Dependencies) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(middleware.CorsMiddleware())
+	if deps.RateLimiter != nil {
+		r.Use(deps.RateLimiter.RateLimit())
+	}
 
 	v1 := r.Group(APIBasePath) // versioning apis
 	v1.GET("/health", func(c *gin.Context) {
@@ -48,6 +52,7 @@ func Setup(deps Dependencies) *gin.Engine {
 		adminProducts.POST("", deps.ProductHandler.Create)
 		adminProducts.PUT("/:id", deps.ProductHandler.Update)
 		adminProducts.DELETE("/:id", deps.ProductHandler.Delete)
+		adminProducts.POST("/:id/images", deps.ProductHandler.UploadImages)
 	}
 
 	// Mutation endpoints for user and admin role
