@@ -7,6 +7,19 @@ import (
 
 	"github.com/minilik/ecommerce/config"
 	di_container "github.com/minilik/ecommerce/internal/infrastructure/container"
+
+	// Import handlers and router for Swagger doc generation
+	// These imports ensure Swaggo can scan the handler files for annotations
+	_ "github.com/minilik/ecommerce/internal/adapter/handler"
+	_ "github.com/minilik/ecommerce/internal/adapter/router"
+
+	// Import usecase packages for Swagger type references
+	_ "github.com/minilik/ecommerce/internal/usecase/auth"
+	_ "github.com/minilik/ecommerce/internal/usecase/order"
+	_ "github.com/minilik/ecommerce/internal/usecase/product"
+
+	// Import docs package to register Swagger info
+	_ "github.com/minilik/ecommerce/docs"
 )
 
 // @title E-commerce API

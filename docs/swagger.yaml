@@ -1,11 +1,405 @@
 basePath: /api/v1
+definitions:
+  LoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  RegisterInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  CreateOrderInput:
+    properties:
+      description:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/OrderItemInput'
+        type: array
+    type: object
+  OrderItemInput:
+    properties:
+      productId:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  CreateProductInput:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+    required:
+    - category
+    - description
+    - name
+    - price
+    - stock
+    type: object
+  UpdateProductInput:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+    type: object
+  response:
+    properties:
+      data: {}
+      errors:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  paginatedResponse:
+    properties:
+      currentPage:
+        type: integer
+      data: {}
+      errors:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      pageSize:
+        type: integer
+      success:
+        type: boolean
+      totalPages:
+        type: integer
+      totalProducts:
+        type: integer
+    type: object
 info:
   contact: {}
-  description: REST API for an E-commerce platform with authentication, products,
-    orders, and image uploads.
+  description: REST API for an E-commerce platform with authentication, products, orders, and image uploads.
   title: E-commerce API
   version: "1.0"
-paths: {}
+paths:
+  /admin/users/{id}/admin:
+    post:
+      description: Promote a user to admin role (admin only)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response'
+      security:
+      - BearerAuth: []
+      summary: Promote user to admin
+      tags:
+      - Admin
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate and obtain JWT token
+      parameters:
+      - description: Login payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response'
+      summary: Login
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account (role=user)
+      parameters:
+      - description: Register payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response'
+      summary: Register a new user
+      tags:
+      - Auth
+  /orders:
+    get:
+      description: Get current user's orders
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response'
+      security:
+      - BearerAuth: []
+      summary: List my orders
+      tags:
+      - Orders
+    post:
+      consumes:
+      - application/json
+      description: Place a new order (user or admin)
+      parameters:
+      - description: Order payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/CreateOrderInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response'
+      security:
+      - BearerAuth: []
+      summary: Create order
+      tags:
+      - Orders
+  /products:
+    get:
+      description: List products with pagination (public)
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/paginatedResponse'
+      summary: List products
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Create a product (admin only)
+      parameters:
+      - description: Product payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/CreateProductInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response'
+      security:
+      - BearerAuth: []
+      summary: Create product
+      tags:
+      - Products
+  /products/{id}:
+    delete:
+      description: Delete a product if no pending orders (admin only)
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response'
+      security:
+      - BearerAuth: []
+      summary: Delete product
+      tags:
+      - Products
+    get:
+      description: Get product details (public)
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response'
+      summary: Get product
+      tags:
+      - Products
+    put:
+      consumes:
+      - application/json
+      description: Update product fields (admin only)
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/UpdateProductInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response'
+      security:
+      - BearerAuth: []
+      summary: Update product
+      tags:
+      - Products
+  /products/{id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload up to 4 images for a product (admin only)
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Image files
+        in: formData
+        name: files
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response'
+      security:
+      - BearerAuth: []
+      summary: Upload product images
+      tags:
+      - Products
 securityDefinitions:
   BearerAuth:
     in: header

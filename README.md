@@ -550,7 +550,7 @@ All endpoints are annotated with:
 - **Host**: Database server address
   - Local: `localhost`
   - Docker (Mac): `host.docker.internal`
-- **Port**: Database port (default: 5432, Docker: 5432)
+- **Port**: Database port (default: 5432, Docker: 5433)
 - **SSL Mode**: `disable` for local development, `require` for production
 
 ### JWT Configuration
@@ -593,7 +593,7 @@ All endpoints are annotated with:
 1. **PostgreSQL Database** (`db`)
 
    - Image: `postgres:15`
-   - Port: `5432:5432` (host:container)
+   - Port: `5433:5432` (host:container)
    - Database: `commerce`
    - Persistent volume: `db_data`
 

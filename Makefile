@@ -29,6 +29,10 @@ down:
 	docker-compose down
  
 swagger:
-	go install github.com/swaggo/swag/cmd/swag@latest
-	swag init -g cmd/server/main.go -o docs
+	@echo "Installing swag..."
+	@go install github.com/swaggo/swag/cmd/swag@latest
+	@echo "Generating Swagger docs..."
+	@swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal --parseDepth 10
+	@echo "Swagger docs generated in docs/"
+	@echo "Check docs/swagger.json for generated paths"
 
