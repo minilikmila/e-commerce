@@ -2,6 +2,8 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/minilik/ecommerce/internal/adapter/handler"
 	"github.com/minilik/ecommerce/internal/adapter/middleware"
@@ -34,6 +36,8 @@ func Setup(deps Dependencies) *gin.Engine {
 	v1.GET("/health", func(c *gin.Context) {
 		c.JSON(200, response.SuccessBase("ok", nil))
 	})
+	// Swagger UI
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// auth endpoints: public access
 	auth := v1.Group("/auth")
 	{

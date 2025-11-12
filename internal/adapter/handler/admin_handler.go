@@ -23,6 +23,15 @@ func NewAdminHandler(auth authusecase.Service, logger *zap.Logger) *AdminHandler
 
 // PromoteUserToAdmin promotes a user to admin (admin-only).
 func (h *AdminHandler) PromoteUserToAdmin(c *gin.Context) {
+	// @Summary Promote user to admin
+	// @Description Promote a user to admin role (admin only)
+	// @Tags Admin
+	// @Produce json
+	// @Param id path string true "User ID"
+	// @Success 200 {object} response.Base
+	// @Failure 404 {object} response.Base
+	// @Security BearerAuth
+	// @Router /admin/users/{id}/admin [post]
 	h.logger.Info("Admin promotion", zap.String("admin", ""))
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

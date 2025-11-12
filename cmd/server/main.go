@@ -9,6 +9,13 @@ import (
 	di_container "github.com/minilik/ecommerce/internal/infrastructure/container"
 )
 
+// @title E-commerce API
+// @version 1.0
+// @description REST API for an E-commerce platform with authentication, products, orders, and image uploads.
+// @BasePath /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	cfg, err := config.Load("")
 	if err != nil {

@@ -26,6 +26,16 @@ func NewOrderHandler(service orderusecase.Service, logger *zap.Logger) *OrderHan
 }
 
 func (h *OrderHandler) Create(c *gin.Context) {
+	// @Summary Create order
+	// @Description Place a new order (user or admin)
+	// @Tags Orders
+	// @Accept json
+	// @Produce json
+	// @Param payload body orderusecase.CreateOrderInput true "Order payload"
+	// @Success 201 {object} response.Base
+	// @Failure 400 {object} response.Base
+	// @Security BearerAuth
+	// @Router /orders [post]
 	var input orderusecase.CreateOrderInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, response.ErrorBase("invalid input", []string{err.Error()}))
@@ -62,6 +72,13 @@ func (h *OrderHandler) Create(c *gin.Context) {
 }
 
 func (h *OrderHandler) List(c *gin.Context) {
+	// @Summary List my orders
+	// @Description Get current user's orders
+	// @Tags Orders
+	// @Produce json
+	// @Success 200 {object} response.Base
+	// @Security BearerAuth
+	// @Router /orders [get]
 	claims, ok := middleware.GetUserClaims(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ErrorBase("unauthorized", []string{"authentication required"}))

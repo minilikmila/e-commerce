@@ -33,6 +33,16 @@ func (h *ProductHandler) WithImageService(img productusecase.ImageService) *Prod
 }
 
 func (h *ProductHandler) Create(c *gin.Context) {
+	// @Summary Create product
+	// @Description Create a product (admin only)
+	// @Tags Products
+	// @Accept json
+	// @Produce json
+	// @Param payload body productusecase.CreateProductInput true "Product payload"
+	// @Success 201 {object} response.Base
+	// @Failure 400 {object} response.Base
+	// @Security BearerAuth
+	// @Router /products [post]
 	var input productusecase.CreateProductInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, response.ErrorBase("invalid input", []string{err.Error()}))
@@ -55,6 +65,18 @@ func (h *ProductHandler) Create(c *gin.Context) {
 }
 
 func (h *ProductHandler) Update(c *gin.Context) {
+	// @Summary Update product
+	// @Description Update product fields (admin only)
+	// @Tags Products
+	// @Accept json
+	// @Produce json
+	// @Param id path string true "Product ID"
+	// @Param payload body productusecase.UpdateProductInput true "Update payload"
+	// @Success 200 {object} response.Base
+	// @Failure 400 {object} response.Base
+	// @Failure 404 {object} response.Base
+	// @Security BearerAuth
+	// @Router /products/{id} [put]
 	var input productusecase.UpdateProductInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, response.ErrorBase("invalid input", []string{err.Error()}))
@@ -81,6 +103,16 @@ func (h *ProductHandler) Update(c *gin.Context) {
 }
 
 func (h *ProductHandler) Delete(c *gin.Context) {
+	// @Summary Delete product
+	// @Description Delete a product if no pending orders (admin only)
+	// @Tags Products
+	// @Produce json
+	// @Param id path string true "Product ID"
+	// @Success 200 {object} response.Base
+	// @Failure 400 {object} response.Base
+	// @Failure 404 {object} response.Base
+	// @Security BearerAuth
+	// @Router /products/{id} [delete]
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.ErrorBase("invalid product id", []string{err.Error()}))
@@ -104,6 +136,14 @@ func (h *ProductHandler) Delete(c *gin.Context) {
 }
 
 func (h *ProductHandler) Get(c *gin.Context) {
+	// @Summary Get product
+	// @Description Get product details (public)
+	// @Tags Products
+	// @Produce json
+	// @Param id path string true "Product ID"
+	// @Success 200 {object} response.Base
+	// @Failure 404 {object} response.Base
+	// @Router /products/{id} [get]
 	// this is also allowed for public access
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -125,6 +165,15 @@ func (h *ProductHandler) Get(c *gin.Context) {
 }
 
 func (h *ProductHandler) List(c *gin.Context) {
+	// @Summary List products
+	// @Description List products with pagination (public)
+	// @Tags Products
+	// @Produce json
+	// @Param page query int false "Page number"
+	// @Param limit query int false "Page size"
+	// @Param search query string false "Search term"
+	// @Success 200 {object} response.Paginated
+	// @Router /products [get]
 	// this is also allowed for public access : it returns list of products
 	page := parseQueryInt(c, "page", 1)
 	pageSize := parseQueryInt(c, "limit", 10)
@@ -165,6 +214,16 @@ func parseQueryInt(c *gin.Context, key string, defaultValue int) int {
 }
 
 func (h *ProductHandler) UploadImages(c *gin.Context) {
+	// @Summary Upload product images
+	// @Description Upload up to 4 images for a product (admin only)
+	// @Tags Products
+	// @Accept multipart/form-data
+	// @Produce json
+	// @Param id path string true "Product ID"
+	// @Param files formData file true "Image files" collectionFormat(multi)
+	// @Success 201 {object} response.Base
+	// @Security BearerAuth
+	// @Router /products/{id}/images [post]
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.ErrorBase("invalid product id", []string{err.Error()}))
