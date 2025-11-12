@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -26,13 +27,26 @@ type Client struct {
 }
 
 func NewClient(cloudName, apiKey, apiSecret, uploadPreset, folder string) *Client {
+	// Use a custom transport with longer timeouts and better DNS handling
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 	return &Client{
 		CloudName:    cloudName,
 		APIKey:       apiKey,
 		APISecret:    apiSecret,
 		UploadPreset: uploadPreset,
 		Folder:       folder,
-		HTTPClient:   &http.Client{Timeout: 30 * time.Second},
+		HTTPClient: &http.Client{
+			Timeout:   60 * time.Second,
+			Transport: transport,
+		},
 	}
 }
 
@@ -70,12 +84,21 @@ func (c *Client) UploadUnsigned(ctx context.Context, file io.Reader, filename st
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return "", err
+		// Provide more context for DNS/network errors
+		if netErr, ok := err.(net.Error); ok {
+			if netErr.Timeout() {
+				return "", fmt.Errorf("cloudinary upload timeout: %w", err)
+			}
+			if dnsErr, ok := netErr.(*net.DNSError); ok {
+				return "", fmt.Errorf("cloudinary DNS resolution failed (check network/Docker DNS): %w", dnsErr)
+			}
+		}
+		return "", fmt.Errorf("cloudinary upload network error: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("cloudinary upload failed: %s", string(b))
+		return "", fmt.Errorf("cloudinary upload failed (status %d): %s", resp.StatusCode, string(b))
 	}
 
 	type uploadResp struct {
@@ -151,12 +174,21 @@ func (c *Client) UploadSigned(ctx context.Context, file io.Reader, filename stri
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return "", err
+		// Provide more context for DNS/network errors
+		if netErr, ok := err.(net.Error); ok {
+			if netErr.Timeout() {
+				return "", fmt.Errorf("cloudinary upload timeout: %w", err)
+			}
+			if dnsErr, ok := netErr.(*net.DNSError); ok {
+				return "", fmt.Errorf("cloudinary DNS resolution failed (check network/Docker DNS): %w", dnsErr)
+			}
+		}
+		return "", fmt.Errorf("cloudinary upload network error: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("cloudinary upload failed: %s", string(b))
+		return "", fmt.Errorf("cloudinary upload failed (status %d): %s", resp.StatusCode, string(b))
 	}
 
 	type uploadResp struct {
@@ -195,6 +227,6 @@ func (c *Client) sign(params map[string]string) string {
 		}
 	}
 	b.WriteString(c.APISecret)
-	sum := sha1.Sum([]byte(b.String()))
+	sum := sha1.Sum(b.Bytes())
 	return hex.EncodeToString(sum[:])
 }

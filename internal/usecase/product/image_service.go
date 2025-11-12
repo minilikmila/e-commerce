@@ -56,33 +56,42 @@ func (s *imageService) UploadImages(ctx context.Context, productID uuid.UUID, fi
 	for _, fh := range files {
 		src, err := fh.Open()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("open file %s: %w", fh.Filename, err)
 		}
-		func() { // anonymous func here:
-			defer src.Close()
-			filename := safeFilename(fh.Filename)
-			var url string
-			var err error
-			// Prefer signed upload when API key/secret are configured but unsigned / unauthenticated for worst case
-			if s.uploader != nil && s.uploader.APIKey != "" && s.uploader.APISecret != "" {
-				url, err = s.uploader.UploadSigned(ctx, src, filename, nil)
-			} else {
-				url, err = s.uploader.UploadUnsigned(ctx, src, filename)
-			}
-			if err != nil {
-				s.logger.Error("cloudinary upload failed", zap.Error(err))
-				return
-			}
-			uploaded = append(uploaded, domain.ProductImage{
-				ID:        uuid.New(),
-				ProductID: productID,
-				URL:       url,
-				CreatedAt: s.now(),
-			})
-		}()
+
+		filename := safeFilename(fh.Filename)
+		var url string
+		var uploadErr error
+
+		// Prefer signed upload when API key/secret are configured but unsigned / unauthenticated for worst case
+		if s.uploader != nil && s.uploader.APIKey != "" && s.uploader.APISecret != "" {
+			url, uploadErr = s.uploader.UploadSigned(ctx, src, filename, nil)
+		} else if s.uploader != nil {
+			url, uploadErr = s.uploader.UploadUnsigned(ctx, src, filename)
+		} else {
+			src.Close()
+			return nil, fmt.Errorf("cloudinary uploader not configured")
+		}
+
+		src.Close()
+
+		if uploadErr != nil {
+			s.logger.Error("cloudinary upload failed",
+				zap.String("filename", filename),
+				zap.Error(uploadErr))
+			return nil, fmt.Errorf("upload %s failed: %w", filename, uploadErr)
+		}
+
+		uploaded = append(uploaded, domain.ProductImage{
+			ID:        uuid.New(),
+			ProductID: productID,
+			URL:       url,
+			CreatedAt: s.now(),
+		})
 	}
+
 	if len(uploaded) == 0 {
-		return nil, fmt.Errorf("no image uploaded")
+		return nil, fmt.Errorf("no images uploaded")
 	}
 	if err := s.imagesRepo.AddMany(ctx, uploaded); err != nil {
 		return nil, err
