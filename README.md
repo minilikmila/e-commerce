@@ -1,6 +1,6 @@
 # E-commerce API (Go + Gin)
 
-A clean-architecture backend for an e-commerce platform built with Go and the Gin web framework. This API provides complete functionality for user authentication, product management, order processing, and image uploads with enterprise-grade features like rate limiting, caching, and comprehensive API documentation.
+A clean-architecture backend for an e-commerce platform built with Go and the Gin web framework. This API provides complete functionality for user authentication, product management, order processing, and image uploads with features like rate limiting, caching, and comprehensive API documentation.
 
 ## 🎯 Overview
 
