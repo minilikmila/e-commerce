@@ -4,11 +4,11 @@ services:
     image: postgres:15
     container_name: ecommerce-db
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-commerce}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      POSTGRES_DB: ${DATABASE_NAME:-ecommerce}
     ports:
-      - "5433:5432"
+      - "${DATABASE_PORT:-5433}:5432"
     restart: always
     volumes:
       - db_data:/var/lib/postgresql/data
@@ -19,7 +19,7 @@ services:
       - db
     environment:
       # The app reads config.yaml
-      APP_ENV: ${APP_ENV:-development}
+      APP_ENV: ${APP_ENVIRONMENT:-development}
     ports:
       - "8080:8080"
     volumes:

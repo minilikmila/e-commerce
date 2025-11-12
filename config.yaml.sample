@@ -1,0 +1,43 @@
+app:
+  name: "ecommerce-api"
+  environment: "development"
+
+server:
+  port: 8080
+
+database:
+  host: "host.docker.internal" # use host.docker.internal instead of localhost for mac usage else use localhost
+  port: 5433
+  user: "postgres"
+  password: "postgres"
+  name: "ecommerce"
+  sslmode: "disable"
+
+jwt:
+  secret: "change-me"
+  issuer: "ecommerce-api"
+  access_token_ttl: 30m
+  refresh_token_ttl: 168h
+
+cloudinary:
+  cloud_name: "duedkmjpj"
+  api_key: "339831563463298"
+  api_secret: "f1p2PVASMkTkAZjSbFpKNRKsUno"
+  upload_preset: "" # optional if using unsigned preset
+  folder: "ecommerce"
+
+rate_limit:
+  enabled: true
+  limit: 2
+  window: 10s # you can use like 10m, 10s, or 1h 
+
+cache:
+  enabled: true
+  product_list_ttl: 60s
+  max_product_entries: 1000
+
+admin_seed:
+  enabled: true
+  email: "admin@example.com"
+  username: "admin"
+  password: "Admin#1234"
