@@ -74,6 +74,7 @@ func (r *productRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.
 		}
 		return nil, err
 	}
+	// TODO: fetch the from category
 	return model.ToDomain(), nil
 }
 
@@ -99,6 +100,8 @@ func (r *productRepository) List(ctx context.Context, filter repository.ProductF
 	if filter.Offset > 0 {
 		tx = tx.Offset(filter.Offset)
 	}
+
+	//TODO: fetch the from category
 
 	if err := tx.Preload("Images").Order("created_at DESC").Find(&productList).Error; err != nil {
 		return nil, 0, err

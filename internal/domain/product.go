@@ -18,4 +18,6 @@ type Product struct {
 	Images      []ProductImage `json:"images,omitempty"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	//
+	CategoryId uuid.UUID
 }

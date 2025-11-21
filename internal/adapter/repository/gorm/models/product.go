@@ -19,6 +19,7 @@ type Product struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	Images      []ProductImage `gorm:"foreignKey:ProductID"`
+	CategoryId  uuid.UUID      `gorm:"foreignKey:ID"`
 }
 
 func (Product) TableName() string {
